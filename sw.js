@@ -48,54 +48,54 @@ const urlsToCache = [
   "./js/main.js",
   "./mail/jqBootstrapValidation.min.js",
   "./mail/contact.js",
-  "./Convertir_PWA/ice-cream-shop-website-template/manifest.json",
-]
+  "./manifest.json",  // Se actualiza la ruta del manifest
+];
 
-//durante la fase de instalación, generalmente se almacena en caché los activos estáticos
+// Durante la fase de instalación, se almacenan en caché los activos estáticos
 self.addEventListener('install', e => {
-    e.waitUntil(
+  e.waitUntil(
       caches.open(CACHE_NAME)
-        .then(cache => {
-          return cache.addAll(urlsToCache)
-            .then(() => self.skipWaiting())
-        })
-        .catch(err => console.log('Falló registro de cache', err))
-    )
-  })
-  
-  //una vez que se instala el SW, se activa y busca los recursos para hacer que funcione sin conexión
-  self.addEventListener('activate', e => {
-    const cacheWhitelist = [CACHE_NAME]
+          .then(cache => {
+              return cache.addAll(urlsToCache)
+                  .then(() => self.skipWaiting())  // Forzamos que el SW se active inmediatamente
+                  .catch(error => {
+                      console.error('Error al agregar al cache:', error);
+                      // Si es necesario, agrega más detalles de depuración aquí.
+                  });
+          })
+          .catch(err => console.log('Falló registro de cache', err))
+  );
+});
+
+
+// Una vez que se instala el SW, se activa y limpia el cache viejo
+self.addEventListener('activate', e => {
+    const cacheWhitelist = [CACHE_NAME];
   
     e.waitUntil(
       caches.keys()
         .then(cacheNames => {
           return Promise.all(
             cacheNames.map(cacheName => {
-              //Eliminamos lo que ya no se necesita en cache
               if (cacheWhitelist.indexOf(cacheName) === -1) {
-                return caches.delete(cacheName)
+                return caches.delete(cacheName);
               }
             })
-          )
+          );
         })
-        // Le indica al SW activar el cache actual
         .then(() => self.clients.claim())
-    )
-  })
-  
-  //cuando el navegador recupera una url
-  self.addEventListener('fetch', e => {
-    //Responder ya sea con el objeto en caché o continuar y buscar la url real
+    );
+});
+
+// Manejar las solicitudes de red
+self.addEventListener('fetch', e => {
     e.respondWith(
       caches.match(e.request)
         .then(res => {
           if (res) {
-            //recuperar del cache
-            return res
+            return res; // Recuperar del cache
           }
-          //recuperar de la petición a la url
-          return fetch(e.request)
+          return fetch(e.request); // Recuperar de la red
         })
-    )
-  })
+    );
+});
